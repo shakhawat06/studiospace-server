@@ -45,22 +45,30 @@ app.get('/studios', async(req, res) => {
 app.get('/studio/:id', async (req, res) => {
     const {id} = await req.params
     const result = await studioCollection.findOne({_id: new ObjectId(id)})
-    console.log(result);
     res.send(result)
 })
 
 app.patch('/studio/:id', async(req, res) => {
+    const { _id, ...data } = await req.body
     const {id} = await req.params
-    const data = await req.body
+    // const data = await req.body
     console.log(data);
     
     // FIXME: Error on update
-    const result = await studioCollection.findOne(
+    const result = await studioCollection.updateOne(
         {_id: new ObjectId(id)},
         {$set: data}
     )
     res.json(result)
 })
+
+app.delete('/studio/:id', async(req, res) => {
+    const {id} = req.params
+    const result  = await studioCollection.deleteOne(
+        { _id: new ObjectId(id) }
+    )
+    res.json(result)
+} )
 
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
