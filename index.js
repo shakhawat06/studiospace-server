@@ -25,6 +25,7 @@ export async function connectToMongoDB() {
 const mongoClient = await connectToMongoDB()
 const db = mongoClient.db('studiospace')
 const studioCollection = db.collection('studio')
+const bookingCollection= db.collection('bookings')
 
 app.get('/', (req, res) => {
     res.send('Hello world')
@@ -51,10 +52,7 @@ app.get('/studio/:id', async (req, res) => {
 app.patch('/studio/:id', async(req, res) => {
     const { _id, ...data } = await req.body
     const {id} = await req.params
-    // const data = await req.body
-    console.log(data);
     
-    // FIXME: Error on update
     const result = await studioCollection.updateOne(
         {_id: new ObjectId(id)},
         {$set: data}
@@ -69,6 +67,12 @@ app.delete('/studio/:id', async(req, res) => {
     )
     res.json(result)
 } )
+
+app.post('/booking', async (req, res) =>{
+    const data = req.body
+    const result = await bookingCollection.insertOne(data)
+    res.send(result)
+})
 
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
