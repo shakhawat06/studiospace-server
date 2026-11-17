@@ -80,6 +80,13 @@ app.get('/my-bookings/:email', async(req, res) => {
     res.send(result);
 })
 
+app.delete('/my-bookings/:id', async(req, res) => {
+    const {id} = req.params
+    const result = await bookingCollection.deleteOne({_id: id})
+    res.send(result);
+    
+})
+
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
 })
