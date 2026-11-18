@@ -26,6 +26,7 @@ const mongoClient = await connectToMongoDB()
 const db = mongoClient.db('studiospace')
 const studioCollection = db.collection('studio')
 const bookingCollection= db.collection('bookings')
+const wishlistCollection = db.collection('wishlist')
 
 app.get('/', (req, res) => {
     res.send('Hello world')
@@ -85,6 +86,18 @@ app.delete('/my-bookings/:id', async(req, res) => {
     const result = await bookingCollection.deleteOne({_id: id})
     res.send(result);
     
+})
+
+app.post('/wishlist', async (req, res) => {
+    const data = req.body
+    const result = await wishlistCollection.insertOne(data)
+    res.send(result)
+})
+
+app.get('/wishlist/:email', async(req, res) => {
+    const {email} = req.params
+    const result = await wishlistCollection.find({email: email}).toArray()
+    res.send(result);
 })
 
 app.listen(port, () => {
