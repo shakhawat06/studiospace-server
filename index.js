@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { MongoClient, ObjectId } from 'mongodb';
 import 'dotenv/config'
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 
 const port = process.env.PORT
@@ -22,82 +23,112 @@ export async function connectToMongoDB() {
     }
 }
 
+const verifyToken = async (req, res, next) => {
+    const authHeader = req.headers.authorization
+    if(!authHeader) {
+        return res.status(401).send({msg: 'Unauthorized!'})
+    }
+    const token = authHeader.split(' ')[1]
+    if(!token) {
+        return res.status(401).send({msg: 'Unauthorized!'})
+    }
+
+    const JWKS = createRemoteJWKSet(new URL('http://localhost:3000/api/auth/jwks'))
+
+    try {
+        const { payload } = await jwtVerify(token, JWKS)
+        next()
+    } catch (error) {
+        return res.status(500).send({msg: 'Internal Server Error!'})
+    }
+}
+
 const mongoClient = await connectToMongoDB()
 const db = mongoClient.db('studiospace')
 const studioCollection = db.collection('studio')
-const bookingCollection= db.collection('bookings')
+const bookingCollection = db.collection('bookings')
 const wishlistCollection = db.collection('wishlist')
 
 app.get('/', (req, res) => {
     res.send('Hello world')
 })
 
-app.post('/add-studio', async (req, res) => {
+app.get('/getStudios', async(req, res) => {
+    const result = await studioCollection.find().limit(6).toArray()
+    res.send(result)
+})
+
+app.post('/add-studio', verifyToken, async (req, res) => {
     const data = req.body
     const result = await studioCollection.insertOne(data)
     res.send(result)
     console.log(result);
 })
 
-app.get('/studios', async(req, res) => {
+app.get('/studios', async (req, res) => {
     const result = await studioCollection.find().toArray()
     res.send(result)
 })
 
-app.get('/studio/:id', async (req, res) => {
-    const {id} = await req.params
-    const result = await studioCollection.findOne({_id: new ObjectId(id)})
+app.get('/studio/:id', verifyToken, async (req, res) => {
+    const { id } = await req.params
+    const result = await studioCollection.findOne({ _id: new ObjectId(id) })
     res.send(result)
 })
 
-app.patch('/studio/:id', async(req, res) => {
+app.patch('/studio/:id', verifyToken, async (req, res) => {
     const { _id, ...data } = await req.body
-    const {id} = await req.params
-    
+    const { id } = await req.params
+
     const result = await studioCollection.updateOne(
-        {_id: new ObjectId(id)},
-        {$set: data}
+        { _id: new ObjectId(id) },
+        { $set: data }
     )
     res.json(result)
 })
 
-app.delete('/studio/:id', async(req, res) => {
-    const {id} = req.params
-    const result  = await studioCollection.deleteOne(
+app.delete('/studio/:id', verifyToken, async (req, res) => {
+    const { id } = req.params
+    const result = await studioCollection.deleteOne(
         { _id: new ObjectId(id) }
     )
     res.json(result)
-} )
+})
 
-app.post('/booking', async (req, res) =>{
+app.post('/booking', verifyToken, async (req, res) => {
     const data = req.body
     const result = await bookingCollection.insertOne(data)
     res.send(result)
 })
 
-app.get('/my-bookings/:email', async(req, res) => {
-    const {email} = req.params
-    const result = await bookingCollection.find({email: email}).toArray()
+app.get('/my-bookings/:email', verifyToken, async (req, res) => {
+    const { email } = req.params
+    const result = await bookingCollection.find({ email: email }).toArray()
     res.send(result);
 })
 
-app.delete('/my-bookings/:id', async(req, res) => {
-    const {id} = req.params
-    const result = await bookingCollection.deleteOne({_id: id})
+app.delete('/my-bookings/:id', verifyToken, async (req, res) => {
+    const { id } = req.params
+    const result = await bookingCollection.deleteOne({ _id: id })
     res.send(result);
-    
 })
 
-app.post('/wishlist', async (req, res) => {
+app.post('/wishlist', verifyToken, async (req, res) => {
     const data = req.body
     const result = await wishlistCollection.insertOne(data)
     res.send(result)
 })
 
-app.get('/wishlist/:email', async(req, res) => {
-    const {email} = req.params
-    const result = await wishlistCollection.find({email: email}).toArray()
+app.get('/wishlist/:email', verifyToken, async (req, res) => {
+    const { email } = req.params
+    const result = await wishlistCollection.find({ email: email }).toArray()
     res.send(result);
+})
+
+app.delete('/wishlist/:id', verifyToken, async (req, res) => {
+    const {id} = await req.params
+    const result=  await wishlistCollection.deleteOne({_id: id})
+    res.send(result)
 })
 
 app.listen(port, () => {
