@@ -50,7 +50,7 @@ const bookingCollection = db.collection('bookings')
 const wishlistCollection = db.collection('wishlist')
 
 app.get('/', (req, res) => {
-    res.send('Hello world')
+    res.send({msg: 'Server is running'})
 })
 
 app.get('/getStudios', async(req, res) => {
