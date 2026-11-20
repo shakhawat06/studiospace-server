@@ -23,12 +23,15 @@ export async function connectToMongoDB() {
     }
 }
 
+// middleware
 const verifyToken = async (req, res, next) => {
     const authHeader = req.headers.authorization
     if(!authHeader) {
         return res.status(401).send({msg: 'Unauthorized!'})
     }
     const token = authHeader.split(' ')[1]
+    console.log(token);
+    
     if(!token) {
         return res.status(401).send({msg: 'Unauthorized!'})
     }
@@ -101,7 +104,7 @@ app.post('/booking', verifyToken, async (req, res) => {
     res.send(result)
 })
 
-app.get('/my-bookings/:email', async (req, res) => {
+app.get('/my-bookings/:email', verifyToken, async (req, res) => {
     const { email } = req.params
     const result = await bookingCollection.find({ email: email }).toArray()
     res.send(result);
